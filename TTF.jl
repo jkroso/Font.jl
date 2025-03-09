@@ -7,6 +7,7 @@
 @use "./tables/cmap.jl" parse_cmap CmapTable glyph_to_char_map
 @use "./tables/hhea.jl" parse_hhea HheaTable
 @use "./tables/hmtx.jl" parse_hmtx HmtxTable advance_x_map
+@use "./units.jl" FontUnit
 
 function read_table_directory(file)
   sfnt_version = take(file, UInt32)
@@ -31,7 +32,7 @@ function read_table_directory(file)
   tables
 end
 
-@struct struct TTFont
+@struct struct TTFont{upm}
   index::Dict{String, UInt32}
   head::HeadTable
   maxp::MaxpTable
@@ -62,16 +63,17 @@ function parse_ttf(io::IO)
   hhea = haskey(tables, "hhea") ? parse_hhea(io, tables["hhea"]) : nothing
   hmtx = haskey(tables, "hmtx") ? parse_hmtx(io, tables["hmtx"], maxp.num_glyphs, hhea.numberOfHMetrics) : nothing
   glyphmap = !isnothing(cmap) ? glyph_to_char_map(cmap) : nothing
-  TTFont(index=tables,
-         head=head,
-         maxp=maxp,
-         kern=kern,
-         cmap=cmap,
-         hhea=hhea,
-         hmtx=hmtx,
-         name=haskey(tables, "name") ? parse_name(io, tables["name"]) : nothing,
-         kerning=isnothing(kern) ? nothing : kern_map(kern, glyphmap),
-         advance_x=isnothing(hmtx) ? nothing : advance_x_map(hmtx, glyphmap))
+  TTFont{head.units_per_em}(
+    index=tables,
+    head=head,
+    maxp=maxp,
+    kern=kern,
+    cmap=cmap,
+    hhea=hhea,
+    hmtx=hmtx,
+    name=haskey(tables, "name") ? parse_name(io, tables["name"]) : nothing,
+    kerning=isnothing(kern) ? nothing : kern_map(kern, glyphmap),
+    advance_x=isnothing(hmtx) ? nothing : advance_x_map(hmtx, glyphmap))
 end
 
 @property TTFont.family = getname(self, 1)
@@ -84,10 +86,10 @@ getname((;name)::TTFont, id::Integer) = begin
   i == nothing ? "" : name.records[i].string
 end
 
-width(c::Char, font::TTFont) = font.advance_x[c]
-width(str::String, (;advance_x, kerning)::TTFont) = begin
+width(c::Char, font::TTFont{upm}) where upm = FontUnit{upm}(font.advance_x[c])
+width(str::String, (;advance_x, kerning)::TTFont{upm}) where upm = begin
   @assert advance_x != nothing "Font has no hmtx table"
-  isnothing(kerning) && return sum(c->advance_x[c], str, init=0)
+  isnothing(kerning) && return FontUnit{upm}(sum(c->advance_x[c], str, init=0))
   w = 0
   kerning_dict = nothing
   for c in str
@@ -97,5 +99,5 @@ width(str::String, (;advance_x, kerning)::TTFont) = begin
     end
     kerning_dict = get(kerning, c, nothing)
   end
-  w
+  FontUnit{upm}(w)
 end
