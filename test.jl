@@ -39,3 +39,5 @@ const ttc = TTCollection("/System/Library/Fonts/Helvetica.ttc")
 
 @test width("button", Font("Helvetica-10:light")) ≈ 28.35pt
 @test width("button", Font("Helvetica-12:light")) ≈ 34.02pt
+
+@test width('A', 'V', x) < width('V', x)

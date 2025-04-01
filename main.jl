@@ -44,3 +44,4 @@ end
 
 # convert to an absolute size since we know the font size here
 width(c::Union{Char,AbstractString}, f::Font) = absolute(width(c, f.face), f.size)
+width(a::Char, b::Char, f::Font) = absolute(width(a, b, f.face), f.size)

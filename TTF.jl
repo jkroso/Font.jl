@@ -87,6 +87,12 @@ getname((;name)::TTFont, id::Integer) = begin
 end
 
 width(c::Char, font::TTFont{upm}) where upm = FontUnit{upm}(font.advance_x[c])
+"Measure the kerning aware width of `b` when following `a`"
+width(a::Char, b::Char, (;advance_x, kerning)::TTFont{upm}) where upm = begin
+  w = FontUnit{upm}(advance_x[b])
+  dict = get(kerning, a, nothing)
+  isnothing(dict) ? w : w + get(dict, b, 0)
+end
 width(str::String, (;advance_x, kerning)::TTFont{upm}) where upm = begin
   @assert advance_x != nothing "Font has no hmtx table"
   isnothing(kerning) && return FontUnit{upm}(sum(c->advance_x[c], str, init=0))
