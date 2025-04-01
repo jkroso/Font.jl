@@ -44,6 +44,8 @@ Base.promote_rule(::Type{F}, ::Type{pt}) where F<:FontUnit = pt
 Base.promote_rule(::Type{F}, ::Type{px}) where F<:FontUnit = px
 
 absolute(fu::FontUnit{per_m}, size::pt) where per_m = pt(fu.value/per_m*size.value)
+absolute(e::em, size::Length) = e.value*size
+absolute(x::Length, size::Length) = x # already an absolute length
 
 # enables 3px < 1mm etc...
 Base.promote_rule(::Type{<:Length}, ::Type{F}) where F<:TypographicLength = px
