@@ -3,7 +3,7 @@
 @use "./units.jl" pt absolute
 @use "./tables/post.jl" parse_post
 @use "./TTC.jl" TTCollection
-@use "./TTF.jl" TTFont width
+@use "./TTF.jl" TTFont width widths!
 @use Fontconfig
 
 @Enum FontStyle regular italic bold light

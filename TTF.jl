@@ -107,3 +107,17 @@ width(str::String, (;advance_x, kerning)::TTFont{upm}) where upm = begin
   end
   FontUnit{upm}(w)
 end
+
+widths!(str::String,
+        (;advance_x, kerning)::TTFont{upm},
+        out::Vector{FontUnit{upm}}=Vector{FontUnit{upm}}(undef, ncodeunits(str))) where upm = begin
+  isnothing(kerning) && return map!(c->FontUnit{upm}(advance_x[c]), out, Char[str...])
+  kerning_dict = nothing
+  for (i,c) in enumerate(str)
+    w = FontUnit{upm}(advance_x[c])
+    kerning_dict !== nothing && (w += get(kerning_dict, c, FontUnit{upm}(0)))
+    kerning_dict = get(kerning, c, nothing)
+    out[i] = w
+  end
+  out
+end
