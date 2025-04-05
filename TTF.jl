@@ -87,13 +87,15 @@ getname((;name)::TTFont, id::Integer) = begin
 end
 
 width(c::Char, font::TTFont{upm}) where upm = FontUnit{upm}(font.advance_x[c])
+
 "Measure the kerning aware width of `b` when following `a`"
-width(a::Char, b::Char, (;advance_x, kerning)::TTFont{upm}) where upm = begin
+function width(a::Char, b::Char, (;advance_x, kerning)::TTFont{upm}) where upm
   w = FontUnit{upm}(advance_x[b])
   dict = get(kerning, a, nothing)
   isnothing(dict) ? w : w + get(dict, b, 0)
 end
-width(str::String, (;advance_x, kerning)::TTFont{upm}) where upm = begin
+
+function width(str::AbstractString, (;advance_x, kerning)::TTFont{upm}) where upm
   @assert advance_x != nothing "Font has no hmtx table"
   isnothing(kerning) && return FontUnit{upm}(sum(c->advance_x[c], str, init=0))
   w = 0
@@ -108,15 +110,31 @@ width(str::String, (;advance_x, kerning)::TTFont{upm}) where upm = begin
   FontUnit{upm}(w)
 end
 
-widths!(str::String,
-        (;advance_x, kerning)::TTFont{upm},
-        out::Vector{FontUnit{upm}}=Vector{FontUnit{upm}}(undef, ncodeunits(str))) where upm = begin
-  isnothing(kerning) && return map!(c->FontUnit{upm}(advance_x[c]), out, Char[str...])
+function widths!(chars::String,
+                (;advance_x, kerning)::TTFont{upm},
+                out::Vector{FontUnit{upm}}=Vector{FontUnit{upm}}(undef, ncodeunits(chars))) where upm
+  isnothing(kerning) && return map!(c->FontUnit{upm}(advance_x[c]), out, Char[chars...])
   kerning_dict = nothing
-  for (i,c) in enumerate(str)
+  for (i,c) in enumerate(chars)
     w = FontUnit{upm}(advance_x[c])
     kerning_dict !== nothing && (w += get(kerning_dict, c, FontUnit{upm}(0)))
     kerning_dict = get(kerning, c, nothing)
+    out[i] = w
+  end
+  out
+end
+
+function widths!(words::Vector{SubString{String}},
+        (;advance_x, kerning)::TTFont{upm},
+        out::Vector{FontUnit{upm}}=Vector{FontUnit{upm}}(undef, length(words))) where upm
+  for (i, word) in enumerate(words)
+    w = FontUnit{upm}(0)
+    kerning_dict = nothing
+    for c in word
+      w += advance_x[c]
+      kerning_dict !== nothing && (w += get(kerning_dict, c, FontUnit{upm}(0)))
+      kerning_dict = get(kerning, c, nothing)
+    end
     out[i] = w
   end
   out
