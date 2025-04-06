@@ -49,8 +49,9 @@ absolute(e::em, size::Length) = e.value*size
 absolute(x::Length, size::Length) = x # already an absolute length
 
 "Convert an absolute length back into a relative length"
-relative(l::Length, size::pt) = em(l/size)
-relative(::Type{FontUnit{per_em}}, l::Length, size::pt) where per_em = FontUnit{per_em}(round(Int, l/size*per_em))
+relative(l::Length, size::pt) = em((l/size).value)
+relative(F::Type{FontUnit}, l::Length, size::pt) = relative(F, convert(pt, l), size)
+relative(::Type{FontUnit{per_em}}, l::pt, size::pt) where per_em = FontUnit{per_em}(round(Int, (l.value/size.value)*per_em))
 
 # enables 3px < 1mm etc...
 Base.promote_rule(::Type{<:Length}, ::Type{F}) where F<:TypographicLength = px
