@@ -3,7 +3,7 @@
 @use "./units.jl" pt absolute
 @use "./tables/post.jl" parse_post
 @use "./TTC.jl" TTCollection
-@use "./TTF.jl" TTFont width widths!
+@use "./TTF.jl" TTFont widths!
 @use Fontconfig
 
 @Enum FontStyle regular italic bold light
@@ -43,5 +43,5 @@ end
 end
 
 # convert to an absolute size since we know the font size here
-width(c::Union{Char,AbstractString}, f::Font) = absolute(width(c, f.face), f.size)
-width(a::Char, b::Char, f::Font) = absolute(width(a, b, f.face), f.size)
+Base.textwidth(c::Union{Char,AbstractString}, f::Font) = absolute(textwidth(c, f.face), f.size)
+Base.textwidth(a::Char, b::Char, f::Font) = absolute(textwidth(a, b, f.face), f.size)
