@@ -10,4 +10,7 @@ w = width("button", font) # 28.35pt
 convert(px, w) # 41.34375px
 convert(mm, w) # 10.00125mm
 convert(inch, w) # 0.39375"
+
+# Font size can also be specified using any unit of length
+Font("Helvetica", 3.5mm, :light)
 ```
