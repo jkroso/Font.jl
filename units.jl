@@ -1,14 +1,34 @@
 @use "github.com/jkroso/Units.jl" Length basefactor @abbreviate m mm conversion_factor short_name ["Imperial.jl" inch]
 @use "github.com/jkroso/Prospects.jl" @struct
 
-"This is perceived pixel density, which isn't necessarily the highest density the display is capable of"
-const PPI = let
-  dispid = ccall((:CGMainDisplayID, "CoreGraphics.framework/CoreGraphics"), UInt32,())
-  widthpx = ccall((:CGDisplayPixelsWide, "CoreGraphics.framework/CoreGraphics"), Int, (UInt32,), dispid)
-  size_mm = ccall((:CGDisplayScreenSize, "CoreGraphics.framework/CoreGraphics"), Tuple{Float64,Float64}, (UInt32,), dispid)
-  MMI = conversion_factor(inch, mm)
-  round(Int, widthpx/size_mm[1] * MMI)
+const dispid = UInt8(@ccall "CoreGraphics.framework/CoreGraphics".CGMainDisplayID()::UInt32)
+const display_size = mm.(@ccall "CoreGraphics.framework/CoreGraphics".CGDisplayScreenSize(dispid::UInt32)::Tuple{Float64,Float64})
+
+"This is the number of pixels the display is pretending to have"
+const perceived_pixels = (@ccall("CoreGraphics.framework/CoreGraphics".CGDisplayPixelsWide(dispid::UInt32)::Int),
+                          @ccall("CoreGraphics.framework/CoreGraphics".CGDisplayPixelsHigh(dispid::UInt32)::Int))
+
+"This is the actual pixel resolution of the display"
+const max_pixels = let
+  modes = @ccall "CoreGraphics.framework/CoreGraphics".CGDisplayCopyAllDisplayModes(dispid::UInt32, C_NULL::Ptr{Cvoid})::Ptr{Cvoid}
+  @assert modes != C_NULL "Failed to get display modes"
+
+  count = @ccall "CoreFoundation.framework/CoreFoundation".CFArrayGetCount(modes::Ptr{Cvoid})::Clong
+  sizes = map(0:count-1) do i
+    mode = @ccall "CoreFoundation.framework/CoreFoundation".CFArrayGetValueAtIndex(modes::Ptr{Nothing}, i::Clong)::Ptr{Nothing}
+    w = @ccall "CoreGraphics.framework/CoreGraphics".CGDisplayModeGetWidth(mode::Ptr{Nothing})::UInt
+    h = @ccall "CoreGraphics.framework/CoreGraphics".CGDisplayModeGetHeight(mode::Ptr{Nothing})::UInt
+    (Int(w), Int(h))
+  end
+  @ccall "CoreFoundation.framework/CoreFoundation".CFRelease(modes::Ptr{Cvoid})::Cvoid
+
+  sort(sizes, by=s->reduce(*, s))[end]
 end
+
+"This is perceived pixel density, which isn't necessarily the highest density the display is capable of"
+const PPI = round(Int, perceived_pixels[1]/display_size[1].value * conversion_factor(inch, mm))
+"This is the max pixel density the display is capable of"
+const max_PPI = round(Int, max_pixels[1]/display_size[1].value * conversion_factor(inch, mm))
 
 abstract type TypographicLength <: Length end
 
