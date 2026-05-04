@@ -59,3 +59,10 @@ ascent(f::Font)  = absolute(FontUnit{units_per_em(f.face)}(Int(f.face.hhea.ascen
 descent(f::Font) = absolute(FontUnit{units_per_em(f.face)}(Int(-f.face.hhea.descender)), f.size)
 "Natural line height per font: ascent + descent (no leading)"
 font_line_height(f::Font) = ascent(f) + descent(f)
+"""
+Approximate capital-letter height. Most Latin fonts (Helvetica, Arial, Roboto,
+Inter) have cap_height between 0.70 and 0.73 × em. We use 0.72 as a robust
+default; without OS/2 table parsing it is the best estimate the framework can
+make and keeps centred labels visually aligned to within a pixel.
+"""
+cap_height(f::Font) = 0.72 * f.size
