@@ -1,9 +1,9 @@
 @use "github.com/jkroso/Prospects.jl" @mutable @lazyprop @property ["Enum.jl" @Enum]
 @use "github.com/jkroso/URI.jl/FSPath.jl" FSPath
-@use "./units.jl" pt absolute Length
+@use "./units.jl" pt absolute Length FontUnit
 @use "./tables/post.jl" parse_post
 @use "./TTC.jl" TTCollection
-@use "./TTF.jl" TTFont widths!
+@use "./TTF.jl" TTFont widths! units_per_em
 @use Fontconfig
 
 @Enum FontStyle regular italic bold light
@@ -53,3 +53,9 @@ end
 # convert to an absolute size since we know the font size here
 Base.textwidth(c::Union{Char,AbstractString}, f::Font) = absolute(textwidth(c, f.face), f.size)
 Base.textwidth(a::Char, b::Char, f::Font) = absolute(textwidth(a, b, f.face), f.size)
+
+# Vertical font metrics, scaled to the font's size
+ascent(f::Font)  = absolute(FontUnit{units_per_em(f.face)}(Int(f.face.hhea.ascender)),  f.size)
+descent(f::Font) = absolute(FontUnit{units_per_em(f.face)}(Int(-f.face.hhea.descender)), f.size)
+"Natural line height per font: ascent + descent (no leading)"
+font_line_height(f::Font) = ascent(f) + descent(f)

@@ -86,6 +86,8 @@ getname((;name)::TTFont, id::Integer) = begin
   i == nothing ? "" : name.records[i].string
 end
 
+units_per_em(::TTFont{upm}) where upm = upm
+
 Base.textwidth(c::Char, font::TTFont{upm}) where upm = FontUnit{upm}(font.advance_x[c])
 
 "Measure the kerning aware width of `b` when following `a`"
