@@ -8,6 +8,12 @@
 
 @Enum FontStyle regular italic bold light
 
+"Map a font's style name onto FontStyle. Styles without their own entry, like Medium, count as regular."
+parse_style(name::AbstractString) = begin
+  s = Symbol(lowercase(name))
+  s in (:regular, :italic, :bold, :light) ? getproperty(FontStyle, s) : FontStyle.regular
+end
+
 @kwdef mutable struct Font
   family::String
   size::pt
@@ -20,7 +26,7 @@
     p = Fontconfig.match(Fontconfig.Pattern(s))
     f = split(Fontconfig.format(p, "%{family}:%{size}:%{width}:%{style[0]}:%{weight}:%{file}"), ':')
     sz = isnothing(size) ? pt(parse(Int, f[2])) : size
-    st = isnothing(style) ? getproperty(FontStyle, Symbol(lowercase(f[4]))) : style
+    st = isnothing(style) ? parse_style(f[4]) : style
     wt = isnothing(weight) ? parse(Int, f[5]) : weight
     new(f[1], sz, parse(Int, f[3]), st, wt, FSPath(f[6]))
   end

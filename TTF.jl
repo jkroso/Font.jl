@@ -135,7 +135,7 @@ function widths!(words::Vector{SubString{String}},
     for c in word
       w += advance_x[c]
       kerning_dict !== nothing && (w += get(kerning_dict, c, FontUnit{upm}(0)))
-      kerning_dict = get(kerning, c, nothing)
+      kerning_dict = isnothing(kerning) ? nothing : get(kerning, c, nothing)
     end
     out[i] = w
   end
