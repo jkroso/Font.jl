@@ -88,22 +88,27 @@ end
 
 units_per_em(::TTFont{upm}) where upm = upm
 
-Base.textwidth(c::Char, font::TTFont{upm}) where upm = FontUnit{upm}(font.advance_x[c])
+"The advance width of `c`. Characters the font has no glyph for take the width of '?'."
+advance(advance_x, c::Char) = get(advance_x, c) do
+  get(advance_x, '?', 0)
+end
+
+Base.textwidth(c::Char, font::TTFont{upm}) where upm = FontUnit{upm}(advance(font.advance_x, c))
 
 "Measure the kerning aware width of `b` when following `a`"
 function Base.textwidth(a::Char, b::Char, (;advance_x, kerning)::TTFont{upm}) where upm
-  w = FontUnit{upm}(advance_x[b])
+  w = FontUnit{upm}(advance(advance_x, b))
   dict = get(kerning, a, nothing)
   isnothing(dict) ? w : w + get(dict, b, 0)
 end
 
 function Base.textwidth(str::AbstractString, (;advance_x, kerning)::TTFont{upm}) where upm
   @assert advance_x != nothing "Font has no hmtx table"
-  isnothing(kerning) && return FontUnit{upm}(sum(c->advance_x[c], str, init=0))
+  isnothing(kerning) && return FontUnit{upm}(sum(c->advance(advance_x, c), str, init=0))
   w = 0
   kerning_dict = nothing
   for c in str
-    w += advance_x[c]
+    w += advance(advance_x, c)
     if kerning_dict !== nothing
       w += get(kerning_dict, c, 0)
     end
@@ -115,10 +120,10 @@ end
 function widths!(chars::String,
                 (;advance_x, kerning)::TTFont{upm},
                 out::Vector{FontUnit{upm}}=Vector{FontUnit{upm}}(undef, ncodeunits(chars))) where upm
-  isnothing(kerning) && return map!(c->FontUnit{upm}(advance_x[c]), out, Char[chars...])
+  isnothing(kerning) && return map!(c->FontUnit{upm}(advance(advance_x, c)), out, Char[chars...])
   kerning_dict = nothing
   for (i,c) in enumerate(chars)
-    w = FontUnit{upm}(advance_x[c])
+    w = FontUnit{upm}(advance(advance_x, c))
     kerning_dict !== nothing && (w += get(kerning_dict, c, FontUnit{upm}(0)))
     kerning_dict = get(kerning, c, nothing)
     out[i] = w
@@ -133,7 +138,7 @@ function widths!(words::Vector{SubString{String}},
     w = FontUnit{upm}(0)
     kerning_dict = nothing
     for c in word
-      w += advance_x[c]
+      w += advance(advance_x, c)
       kerning_dict !== nothing && (w += get(kerning_dict, c, FontUnit{upm}(0)))
       kerning_dict = isnothing(kerning) ? nothing : get(kerning, c, nothing)
     end
